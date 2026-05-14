@@ -80,9 +80,7 @@ else
 	firm_builder $(TARGET).firm $(ENTRY9) $(ENTRY11) $(SECTION0_ADR) $(SECTION0_TYPE) \
 		$(SECTION0_FILE) $(SECTION1_ADR) $(SECTION1_TYPE) $(SECTION1_FILE)
 endif
-	@7z a -mx -m0=LZMA $(TARGET)$(VERS_STRING).7z $(TARGET).firm
-	@7z u -mx -m0=LZMA $(TARGET)$(VERS_STRING).7z resources/gba_db.bin
-	@7z u -mx -m0=PPMD $(TARGET)$(VERS_STRING).7z libraries/libn3ds/LICENSE.txt libraries/libn3ds/libraries/fatfs/LICENSE.txt libraries/inih/LICENSE.txt LICENSE.txt README.md
+	@7z a -mx -m0=LZMA $(TARGET)$(VERS_STRING).7z $(TARGET).firm resources/gba_db.bin libraries/libn3ds/LICENSE.txt libraries/libn3ds/libraries/fatfs/LICENSE.txt libraries/inih/LICENSE.txt LICENSE.txt README.md
 	@7z rn $(TARGET)$(VERS_STRING).7z resources/gba_db.bin 3ds/open_agb_firm/gba_db.bin libraries/libn3ds/LICENSE.txt LICENSE_libn3ds.txt libraries/libn3ds/libraries/fatfs/LICENSE.txt LICENSE_FatFs.txt libraries/inih/LICENSE.txt LICENSE_inih.txt
 
 #---------------------------------------------------------------------------------
