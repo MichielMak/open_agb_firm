@@ -28,11 +28,14 @@ jobs:
           path: ctr_firm_builder
           key: ${{ runner.os }}-${{ env.FIRM_BUILDER_COMMIT }}
 
-      - name: Install ctr_firm_builder dependencies
-        if: steps.cache-firm-builder.outputs.cache-hit != 'true'
+      - name: Install build dependencies
         run: |
           apt-get update
-          apt-get -y install gcc
+          apt-get -y install p7zip-full
+
+      - name: Install ctr_firm_builder dependencies
+        if: steps.cache-firm-builder.outputs.cache-hit != 'true'
+        run: apt-get -y install gcc
 
       - name: Build ctr_firm_builder
         if: steps.cache-firm-builder.outputs.cache-hit != 'true'
