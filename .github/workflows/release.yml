@@ -1,0 +1,64 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: devkitpro/devkitarm
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Get ctr_firm_builder commit
+        run: echo "FIRM_BUILDER_COMMIT=$(git ls-remote https://github.com/derrekr/ctr_firm_builder.git HEAD | cut -f1)" >> $GITHUB_ENV
+
+      - name: Cache ctr_firm_builder
+        id: cache-firm-builder
+        uses: actions/cache@v4
+        with:
+          path: ctr_firm_builder
+          key: ${{ runner.os }}-${{ env.FIRM_BUILDER_COMMIT }}
+
+      - name: Install ctr_firm_builder dependencies
+        if: steps.cache-firm-builder.outputs.cache-hit != 'true'
+        run: |
+          apt-get update
+          apt-get -y install gcc
+
+      - name: Build ctr_firm_builder
+        if: steps.cache-firm-builder.outputs.cache-hit != 'true'
+        run: |
+          git clone --depth 1 --recurse-submodules https://github.com/derrekr/ctr_firm_builder.git
+          cd ctr_firm_builder
+          make
+
+      - name: Build release
+        run: |
+          export PATH=$PWD/ctr_firm_builder:$PATH
+          make release
+
+      - name: Get release asset name
+        run: echo "ASSET=$(ls open_agb_firm*.7z)" >> $GITHUB_ENV
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ github.ref_name }}
+          body: |
+            ## Installation
+            1. Copy `open_agb_firm.firm` to `/luma/payloads` on your 3DS SD card (Luma3DS), or assign it a slot in fastboot3DS.
+            2. Copy the `3ds` folder to the root of your SD card.
+            3. Launch via Luma3DS by holding START while booting, or via your fastboot3DS slot assignment.
+
+            See the [README](https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/README.md) for full setup and configuration instructions.
+          files: ${{ env.ASSET }}
+          fail_on_unmatched_files: true
