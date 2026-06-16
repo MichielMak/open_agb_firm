@@ -239,3 +239,9 @@ GPL v3 or any later version. See `LICENSE.txt`.
 - Everyone who contributed to **3dbrew.org**
 
 Copyright (C) 2024 derrek, profi200, d0k3
+
+---
+
+## About this fork
+
+The features added in this fork (live settings menu, lid-close sleep) were developed with the assistance of [Claude Code](https://claude.ai/code) by Anthropic. The underlying hardware knowledge, original codebase, and all foundational work belong to the original open_agb_firm contributors.
