@@ -1,195 +1,111 @@
 # open_agb_firm
-open_agb_firm is a bare metal interface for *natively* running GBA games and homebrew using the 3DS's built-in GBA hardware.
 
-open_agb_firm is also a complete and better alternative to GBA VC injects (AGB_FIRM), allowing for:
-* Launching GBA files directly from the SD card
-* Writing save files directly to the SD card
-* Automatic save type configuration using an included database
-* User configuration, such as gamma settings
-* Button remapping
-* Border support for 1:1 scaling mode
-* Gamma correction to fix the washed out look of games
-* Color correction to mimic the look of the GBA/DS phat LCD
-* And more to come!
+Bare-metal GBA runner for the 3DS. Loads `.gba` files directly from the SD card using the console's real GBA hardware — not emulation.
 
-Unlike AGB_FIRM open_agb_firm is not affected by the famous bug where the video output wraps around leaving garbled lines at the bottom of the screen. SD cluster size doesn't matter.
+A complete replacement for GBA Virtual Console injects (AGB_FIRM), with accurate saves, color correction, button remapping, live settings, and lid-close sleep.
 
-## Disclaimer
-open_agb_firm is currently in beta. While open_agb_firm is relatively stable and safe to use, some quirks that have not been fixed. See [Known Issues](#known-issues) for more information.
+> **Beta software.** Reasonably stable, but use at your own risk. We are not responsible for damage to your system.
 
-Additionally, we are not responsible for any damage that may occur to your system as a direct or indirect result of you using open_agb_firm.
+---
 
-## Setup
-* Download the [latest release](https://github.com/profi200/open_agb_firm/releases/latest) and extract it.
-* Copy the `open_agb_firm.firm` file to your 3DS's SD card at `/luma/payloads` if you're using Luma3DS or elsewhere if you're using fastboot3DS.
-* Copy the `3ds` folder to the root of your 3DS's SD card. Merge folders if asked.
-* Launch open_agb_firm using Luma3DS by holding START while booting your 3DS or assign it to a slot if you're using fastboot3DS.
-* After open_agb_firm launches, use the file browser to navigate to a `.gba` ROM to run.
+## Installation
+
+1. Download the [latest release](https://github.com/MichielMak/open_agb_firm/releases/latest) and extract it.
+2. Copy `open_agb_firm.firm` to `/luma/payloads/` on your SD card (Luma3DS), or assign it a slot in fastboot3DS.
+3. Copy the `3ds` folder to the root of your SD card. Merge if prompted.
+4. Launch via Luma3DS by holding **START** at boot, or via your fastboot3DS slot.
+5. Use the file browser to pick a `.gba` ROM.
+
+---
 
 ## Controls
-A/B/L/R/START/SELECT - GBA buttons, respectively
 
-SELECT+Y - Dump hardware frame output to `/3ds/open_agb_firm/screenshots/YYYY_MM_DD_HH_MM_SS.bmp`
-* The file name is the current date and time from your real-time clock.
-* If the screen output freezes, press HOME to fix it. This is a hard to track down bug that will be fixed.
+| Combo | Action |
+|-------|--------|
+| A / B / L / R / START / SELECT | GBA buttons |
+| X + SELECT | Open live settings menu |
+| X + UP / DOWN | Adjust backlight by `backlightSteps` |
+| X + LEFT | Turn off LCD backlight |
+| X + RIGHT | Turn on LCD backlight |
+| SELECT + Y | Screenshot to `/3ds/open_agb_firm/screenshots/` |
+| X (hold on launch) | Skip ROM patches |
+| Power (hold) | Power off |
 
-X+UP/DOWN - Adjust screen brightness up or down by `backlightSteps` units.
+> If the screen freezes after a screenshot, press HOME to recover.
 
-X+LEFT - Turn off LCD backlight.
-
-X+RIGHT - Turn on LCD backlight.
-
-X+SELECT - Open the live settings menu on the bottom screen.
-* Up/Down: move between items. Left/Right: adjust the selected item.
-* Press B or X+SELECT again to close.
-* Adjustments to contrast, brightness, saturation, and color profile take effect immediately when a color profile is active. Backlight, volume, and audio output are always live.
-* Changes are session-only; edit `config.ini` to make them permanent.
-* Items marked *(restart to apply)* require relaunching the game to take effect.
-
-Hold the X button while launching a game to skip applying patches (if present)
-
-Hold the power button to turn off the 3DS.
+---
 
 ## Live Settings Menu
 
-Press X+SELECT during gameplay to open the settings menu on the bottom screen. The top screen continues showing the game while the menu is open.
+Press **X+SELECT** during gameplay. The top screen keeps showing the game.
 
-### Controls
 | Button | Action |
 |--------|--------|
 | Up / Down | Move between items |
-| Left / Right | Adjust the selected value |
-| B or X+SELECT | Close the menu |
-| Power | Exit the menu and power off |
+| Left / Right | Adjust value |
+| B or X+SELECT | Close |
+| Power | Power off |
 
-### Menu Items
+### Items
 
-`Backlight` - Screen brightness. Adjusts by `backlightSteps` units per press. Same as X+UP/DOWN but accessible from the menu.
+| Item | Range | Step | Default |
+|------|-------|------|---------|
+| Backlight | hardware min–max | `backlightSteps` | 64 |
+| Color Profile | None / GBA / GB Micro / GBA SP / NDS / NDS Lite / Switch Online / VBA / Identity | — | None |
+| Contrast | 0.00–3.00 | 0.05 | 1.00 |
+| Brightness | -1.00–1.00 | 0.05 | 0.00 |
+| Saturation | 0.00–3.00 | 0.05 | 1.00 |
+| Volume | Muted / -63.5 dB–+24 dB / Slider | 0.5 dB | Slider |
+| Audio Output | Auto / Speakers / Headphones | — | Auto |
 
-`Color Profile` - Cycles through all available color correction profiles (None, GBA, GB Micro, GBA SP (AGS-101), NDS, NDS Lite, Switch Online, VBA/No$GBA, Identity). Switching between non-None profiles updates immediately. Switching to or from None requires a restart because it changes the video capture pipeline.
+**Notes:**
+- Contrast, Brightness, and Saturation have no effect when Color Profile is None.
+- Switching between non-None profiles updates immediately. Switching to or from None requires a game restart (changes the capture pipeline). These items are marked **(restart to apply)**.
+- Volume skips the range -19 to +48 dB — that range is undefined behavior on this hardware.
+- All changes are **session-only**. Edit `config.ini` to persist them.
 
-`Contrast` - Screen gain. Step size: 0.05. Range: 0.00–3.00. Default: 1.00. Has no effect when Color Profile is None.
-
-`Brightness` - Screen lift. Step size: 0.05. Range: -1.00–1.00. Default: 0.00. Has no effect when Color Profile is None.
-
-`Saturation` - Color saturation. Step size: 0.05. Range: 0.00–3.00. Default: 1.00. Values below 1.00 desaturate toward greyscale; values above 1.00 oversaturate. Has no effect when Color Profile is None.
-
-`Volume` - Audio volume in 0.5 dB steps. Displays `Slider` when set to hardware volume slider control (the default), `Muted` at minimum, or a raw dB value otherwise. The range -19 to 48 is intentionally skipped as it is undefined behavior for the hardware.
-
-`Audio Output` - Cycles between Auto, Speakers, and Headphones.
-
-### Notes
-* All changes are **session-only** and are lost when the game exits. To make them permanent, update the corresponding values in `/3ds/open_agb_firm/config.ini`.
-* Items marked **(restart to apply)** only take effect after relaunching the game. This applies to Color Profile when switching to or from None.
-* Contrast, Brightness, and Saturation require a non-None Color Profile to have any visible effect. The menu will show `(need color profile)` next to these values when Color Profile is set to None.
+---
 
 ## Configuration
-Settings are stored in `/3ds/open_agb_firm/config.ini`.
 
-### General
-General settings.
+Settings are stored in `/3ds/open_agb_firm/config.ini`. Per-game overrides go in `/3ds/open_agb_firm/saves/<romName>.ini`.
 
-`u8 backlight` - Backlight brightness in luminance (cd/m²).
-* Default: `64`
-* Possible values:
-  * Old 3DS: `20`-`117`
-  * New 3DS: `16`-`142`
-* Values ≤`64` are recommended.
-* Hardware calibration from your CTRNAND is required to get the correct brightness for both LCDs.
+### [general]
 
-`u8 backlightSteps` - How much to adjust backlight brightness by.
-* Default: `5`
+| Key | Default | Description |
+|-----|---------|-------------|
+| `backlight` | `64` | Backlight brightness (cd/m²). Old 3DS: 20–117. New 3DS: 16–142. Values ≤64 recommended. |
+| `backlightSteps` | `5` | Step size for X+UP/DOWN and the settings menu. |
+| `directBoot` | `false` | Skip the GBA BIOS intro animation. |
+| `useGbaDb` | `true` | Use `gba_db.bin` to identify save types. |
+| `useSavesFolder` | `true` | Store saves in `/3ds/open_agb_firm/saves/` instead of next to the ROM. |
 
-`bool directBoot` - Skip GBA BIOS intro at game startup.
-* Default: `false`
+### [video]
 
-`bool useGbaDb` - Use `gba_db.bin` to get save types.
-* Default: `true`
+| Key | Default | Options / Range | Description |
+|-----|---------|-----------------|-------------|
+| `scaler` | `matrix` | `none`, `bilinear`, `matrix` | Upscaling method for the 1.5× top-screen output. |
+| `colorProfile` | `none` | `none`, `gba`, `gb_micro`, `gba_sp101`, `nds`, `ds_lite`, `nso`, `vba`, `identity` | Color correction profile. Use `identity` if you just want to tweak contrast/saturation without a full profile. Non-`none` profiles increase RAM usage and reduce battery life. |
+| `contrast` | `1.0` | 0.0–3.0 | Screen gain. No effect when `colorProfile=none`. |
+| `brightness` | `0.0` | -1.0–1.0 | Screen lift. No effect when `colorProfile=none`. |
+| `saturation` | `1.0` | 0.0–3.0 | Color saturation. No effect when `colorProfile=none`. |
 
-`bool useSavesFolder` - Use `/3ds/open_agb_firm/saves` for save files instead of the ROM directory.
-* Default: `true`
+### [audio]
 
-### Video
-Video-related settings.
+| Key | Default | Options / Range | Description |
+|-----|---------|-----------------|-------------|
+| `audioOut` | `auto` | `auto`, `speakers`, `headphones` | Force a specific output or let the hardware decide. |
+| `volume` | `127` | -128–127 | -128 = muted. -127 to -20 = -63.5 to 0 dB. Values above 48 = use hardware volume slider. Avoid -19 to 48 (undefined hardware behavior). |
 
-`string scaler` - Video scaler.
-* Default: `matrix`
-* Options: `none`, `bilinear`, `matrix`
+### [input]
 
-`string colorProfile` - Color correction profile.
-* Default: `none`
-* Options:
-  * `none` Disable all color correction options.
-  * `gba` Game Boy Advance.
-  * `gb_micro` Game Boy micro.
-  * `gba_sp101` Game Boy Advance SP (AGS-101).
-  * `nds` Nintendo DS (DS phat).
-  * `ds_lite` Nintendo DS lite.
-  * `nso` Nintendo Switch Online.
-  * `vba` Visual Boy Advance/No$GBA full.
-  * `identity` No color space conversion.
-* If you just want less saturated colors or to change other basic settings like contrast or brightness then set this to `identity`.
-* Due to most 2/3DS LCDs not being calibrated correctly from factory the look may not match exactly what you see on real hardware.
-* Due to a lot of extra RAM access and extra CPU processing per frame, battery runtime is affected with color profiles other than `none`.
+Maps 3DS buttons to GBA inputs. Each key accepts one or more buttons separated by commas (no spaces).
 
-`float contrast` - Screen gain. No effect when `colorProfile=none`.
-* Default: `1.0`
+Available buttons: `A B SELECT START RIGHT LEFT UP DOWN R L X Y TOUCH CP_RIGHT CP_LEFT CP_UP CP_DOWN`
 
-`float brightness` - Screen lift. No effect when `colorProfile=none`.
-* Default: `0.0`
+`TOUCH` reacts to any touchscreen press. `CP_*` is the Circle Pad. Button mappings can add up to 1 frame of input lag.
 
-`float saturation` - Screen saturation. No effect when `colorProfile=none`.
-* Default: `1.0`
-
-### Audio
-Audio settings.
-
-`string audioOut` - Audio output.
-* Default: `auto`
-* Options: `auto`, `speakers`, `headphones`
-
-`s8 volume` - Audio volume. Values above 48 mean control via volume slider. Range -128 (muted) to -20 (100%). Avoid the range -19 to 48.
-* Default: `127`
-
-### Input
-Input settings. Each entry allows one or multiple buttons. Buttons are separated by a `,` without spaces.  
-Allowed buttons are `A B SELECT START RIGHT LEFT UP DOWN R L X Y TOUCH CP_RIGHT CP_LEFT CP_UP CP_DOWN`.  
-TOUCH reacts to all touchscreen presses. The CP in front is short for Circle-Pad.
-
-Note that button mappings can cause input lag of up to 1 frame depending on when the game reads inputs. For this reason the default mapping of the Circle-Pad to D-Pad is no longer provided.
-
-`A` - Button map for the A button.
-* Default: `none`
-
-`B` - Button map for the B button.
-* Default: `none`
-
-`SELECT` - Button map for the SELECT button.
-* Default: `none`
-
-`START` - Button map for the START button.
-* Default: `none`
-
-`RIGHT` - Button map for the RIGHT button.
-* Default: `none`
-
-`LEFT` - Button map for the LEFT button.
-* Default: `none`
-
-`UP` - Button map for the UP button.
-* Default: `none`
-
-`DOWN` - Button map for the DOWN button.
-* Default: `none`
-
-`R` - Button map for the R button.
-* Default: `none`
-
-`L` - Button map for the L button.
-* Default: `none`
-
-Example which maps the D-Pad and Circle-Pad to the GBA D-Pad:
-```
+```ini
 [input]
 RIGHT=RIGHT,CP_RIGHT
 LEFT=LEFT,CP_LEFT
@@ -197,141 +113,129 @@ UP=UP,CP_UP
 DOWN=DOWN,CP_DOWN
 ```
 
-### Game
-Game-specific settings. Only intended to be used in the per-game settings (romName.ini in `/3ds/open_agb_firm/saves`).
+### [game]
 
-`u8 saveSlot` - Savegame slot (0-9).
-* Default: `0`
+Intended for per-game `.ini` files only.
 
-`string saveType` - Override to use a specific save type.
-* Default: `auto`
-* Options starting with `rom_256m` are intended for 32 MiB games. Options ending with `rtc` enable the hardware real-time clock:
-  * `eeprom_8k`
-  * `rom_256m_eeprom_8k`
-  * `eeprom_64k`
-  * `rom_256m_eeprom_64k`
-  * `flash_512k_atmel_rtc`
-  * `flash_512k_atmel`
-  * `flash_512k_sst_rtc`
-  * `flash_512k_sst`
-  * `flash_512k_panasonic_rtc`
-  * `flash_512k_panasonic`
-  * `flash_1m_macronix_rtc`
-  * `flash_1m_macronix`
-  * `flash_1m_sanyo_rtc`
-  * `flash_1m_sanyo`
-  * `sram_256k`
-  * `none`
-  * `auto`
+| Key | Default | Description |
+|-----|---------|-------------|
+| `saveSlot` | `0` | Save file slot (0–9). |
+| `saveType` | `auto` | Override the save type. See options below. |
 
-### Advanced
-Options for advanced users. No pun intended.
+Save type options: `eeprom_8k`, `rom_256m_eeprom_8k`, `eeprom_64k`, `rom_256m_eeprom_64k`, `flash_512k_atmel`, `flash_512k_atmel_rtc`, `flash_512k_sst`, `flash_512k_sst_rtc`, `flash_512k_panasonic`, `flash_512k_panasonic_rtc`, `flash_1m_macronix`, `flash_1m_macronix_rtc`, `flash_1m_sanyo`, `flash_1m_sanyo_rtc`, `sram_256k`, `none`, `auto`
 
-`bool saveOverride` - Open save type override menu after selecting a game.
-* Default: `false`
+Options prefixed with `rom_256m` are for 32 MiB games. Options suffixed with `_rtc` enable the hardware real-time clock.
 
-`bool colorOverride` - Allow per-game color profile settings to override the global `colorProfile` value in `config.ini`.
-* Default: `false`
+### [advanced]
 
-`string defaultSave` - Save type default when save type is not in `gba_db.bin` and cannot be autodetected. Same options as for `saveType` above except `auto` is not supported.
-* Default: `sram_256k`
+| Key | Default | Description |
+|-----|---------|-------------|
+| `saveOverride` | `false` | Show a save type selection menu after launching a game. |
+| `colorOverride` | `false` | Allow per-game `.ini` files to override the global `colorProfile`. |
+| `defaultSave` | `sram_256k` | Fallback save type when the game isn't in `gba_db.bin` and autodetection fails. Same options as `saveType`, excluding `auto`. |
+
+---
 
 ## Patches
-open_agb_firm supports automatically applying IPS and UPS patches. To use a patch, rename the patch file to match the ROM file name (without the extension).
-* If you wanted to apply an IPS patch to `example.gba`, rename the patch file to `example.ips`
 
-## Known Issues
-This section is reserved for a listing of known issues. At present only this remains:
-* Using SELECT+Y to dump screen output to a file can freeze the screen output sometimes.
-* Save type autodetection may still fail for certain games using EEPROM.
-* Lack of settings.
-* No cheats and other enhancements.
+IPS and UPS patches are applied automatically if a patch file with the same base name as the ROM is present in the same directory.
 
-If you happen to stumble over another bug, please [open an issue](https://github.com/profi200/open_agb_firm/issues) or contact profi200 via other platforms.
+```
+example.gba   →   example.ips  (or example.ups)
+```
+
+Hold **X** while launching a game to skip patch application.
+
+---
+
+## EEPROM Saves and Emulator Compatibility
+
+Most emulators write EEPROM saves in a different format than open_agb_firm. Use [gba-eeprom-save-fix](https://exelotl.github.io/gba-eeprom-save-fix/) by exelotl to convert in either direction.
+
+---
 
 ## Hardware Limitations
-open_agb_firm using the 3DS's built-in GBA hardware. Unfortunately, this comes with limitations compared to GBA emulators. This is a list of limitations we can't solve in software or are very hard to work around.
-* \>32 MiB (>256 Mbit) games and homebrew.
-* Games with extra hardware built into the cartridge (except real-time clocks). Patches are required.
-* Proper save autodetection (can't find save type during gameplay).
-* GBA serial port (aka Link Cable).
-* \>32 KiB (>256 Kbit) SRAM (homebrew games/emulators).
-* Reboots are required for switching between games.
-* No save states. Very difficult to implement because no direct hardware access.
-* Sound has lots of aliasing issues. No known workaround (hardware bug).
 
-## EEPROM Fixer
-Most emulators output EEPROM saves differently than what open_agb_firm expects, making them incompatible. Fortunately, they are very easy to fix, using [this tool](https://exelotl.github.io/gba-eeprom-save-fix/) by exelotl.
+open_agb_firm uses the real GBA hardware inside the 3DS. Some limitations are fundamental and cannot be worked around in software:
 
-The tool also works vise versa, if you want to use a save generated by open_agb_firm with an emulator.
+- ROMs larger than 32 MiB (256 Mbit).
+- Cartridge add-ons other than RTCs (e.g. solar sensors, gyroscopes). Patches are required.
+- Save type detection during gameplay — type must be known before launch.
+- GBA Link Cable / serial port.
+- SRAM larger than 32 KiB (affects some homebrew).
+- Game switching requires a reboot.
+- No save states.
+- Audio aliasing artifacts (hardware bug, no known fix).
+
+---
+
+## Known Issues
+
+- Screenshot (SELECT+Y) can occasionally freeze the screen output. Press HOME to recover.
+- Save type autodetection may fail for some EEPROM games.
+
+Found a bug? [Open an issue](https://github.com/profi200/open_agb_firm/issues).
+
+---
 
 ## FAQ
-**Q: Why isn't open_agb_firm a normal 3DS app?**\
-A: To access the 3DS's GBA hardware, open_agb_firm needs to run with full hardware access, which can only be provided by running as a FIRM.
 
-**Q: Is this safe to use?**\
-A: Of course! While open_agb_firm does run with full hardware access, a lot of work has been put in by several people to ensure that nothing unexpected happens. Some backend code from open_agb_firm is actually used in [fastboot3ds](https://github.com/derrekr/fastboot3DS)!
+**Why does this run as a FIRM instead of a normal 3DS app?**
+Accessing the GBA hardware requires full hardware control, which is only possible from FIRM level.
 
-**Q: What games work with open_agb_firm?**\
-A: In theory, all of them, except those that fall within the [hardware limitations](#hardware-limitations).
+**Is it safe?**
+Yes. open_agb_firm has been used by many people and some of its backend code is also used in [fastboot3DS](https://github.com/derrekr/fastboot3DS).
 
-**Q: How can I increase the brightness?**\
-A: Increase the value of the `backlight` setting in `config.ini`. See [Configuration](#configuration) for more information.
+**Which games are compatible?**
+All of them in theory, except those that hit the [hardware limitations](#hardware-limitations) above.
 
-**Q: Why do the colors look off?**\
-A: The default gamma settings are intended to make up for the washed out colors the 3DS LCD has. If they look weird to you, setting the `outGamma` setting to `2.2` might help.
+**Why do the colors look washed out?**
+Most 2/3DS LCDs are not factory calibrated. Set `colorProfile=identity` and tune `contrast` and `saturation` to taste, or pick a profile that matches your target hardware.
 
-**Q: Why do some of my ROM hacks/homebrew games have saving issues?**\
-A: open_agb_firm resorts to save autodetection when it can't find an entry for the game it's running in `gba_db.bin` (which only contains data for official games), and it's a bit wonky for games that use EEPROM or misleading SDK save strings.
+**Why doesn't my ROM hack or homebrew save correctly?**
+open_agb_firm uses `gba_db.bin` for official games only. For anything not in the database it falls back to autodetection, which can misidentify EEPROM. Try enabling `saveOverride=true` to pick the type manually, or set `defaultSave` to a known-good type for your game.
 
-**Q: Why doesn't my save file from an emulator work?**\
-A: There's a good chance that the save you're having issues with is an EEPROM save, which most emulators output differently. See [EEPROM Fixer](#eeprom-fixer).
+**Why doesn't my emulator save work?**
+Likely an EEPROM format mismatch. See [EEPROM Saves and Emulator Compatibility](#eeprom-saves-and-emulator-compatibility).
 
-**Q: My game doesn't save properly!**\
-A: First, please ensure that the GBA ROM you are playing is not modified in any way, and matches its [No-Intro](https://datomatic.no-intro.org/) checksums. Second, make sure you aren't using an existing `.SAV` file, because some may have issues for various reasons. Third, make sure your [`gba_db.bin`](resources/gba_db.bin) is up-to-date. If everything seems to be in order but the game still doesn't save properly, please [open an issue](https://github.com/profi200/open_agb_firm/issues) so it can be fixed. In the meantime, the `useGbaDb` and `saveOverride` settings may be useful (see [Configuration](#configuration) for more information).
+---
 
-## Nightlies
-If you want to test the latest changes you have 2 download options. The first is recommended.
+## Building
 
-**With GitHub account**\
-Log into your account, go to the Actions tab at the top, click on the first entry and download the file under `Artifacts` (`open_agb_firm_nightly`).
+Requirements:
+- [devkitARM](https://devkitpro.org/wiki/devkitPro_pacman)
+- [CTR Firm Builder](https://github.com/derrekr/ctr_firm_builder) or [firmtool](https://github.com/TuxSH/firmtool)
+- `p7zip-full` for release builds
 
-**Without GitHub account**\
-nightly.link is a thirdparty site to make builds available to everyone. I'm not affiliated with nightly.link or their developers and neither are they with GitHub. Use at your own risk.\
-https://nightly.link/profi200/open_agb_firm/workflows/c-cpp/master/open_agb_firm_nightly.zip
+```sh
+git clone --recurse-submodules https://github.com/MichielMak/open_agb_firm
+cd open_agb_firm
+make          # debug build
+make release  # release archive (.7z)
+```
 
-## Compiling
-To compile open_agb_firm, the following needs to be installed:
-* [devkitARM](https://devkitpro.org/wiki/devkitPro_pacman)
-* [CTR Firm Builder](https://github.com/derrekr/ctr_firm_builder) or [firmtool](https://github.com/TuxSH/firmtool)
+Update: `git pull && git submodule update --init --recursive`
 
-Additionally, `p7zip` (or if available, `p7zip-full`) needs to be installed to make release builds. Also, make sure that the `dma330as` and `firm_builder`/`firmtool` binaries are in the PATH environment variable and accessible to the Makefile.
-
-Clone this repository using `git clone --recurse-submodules https://github.com/profi200/open_agb_firm`and update via `git pull && git submodule update --init --recursive`.
-
-Build open_agb_firm as a debug build via `make`, or as a release build via `make release`.
+---
 
 ## License
-You may use this under the terms of the GNU General Public License GPL v3 or the terms of any later revisions of the GPL. Refer to the provided `LICENSE.txt` file for further information.
 
-## Thanks to...
-* **yellows8**
-* **plutoo**
-* **smea**
-* **Normmatt**
-* **WinterMute**
-* **ctrulib devs**
-* **LumaTeam**
-* **devkitPro**
-* **ChaN** (fatfs)
-* **benhoyt** (inih)
-* **fastboot3DS project**
-* **MAME**
-* **No-Intro**
-* **Wolfvak, Sono and all the other people in #GodMode9 on freenode/Discord**
-* **endrift, Extrems and all the other people in #mgba on Libera.Chat**
-* **Oleh Prypin (oprypin) for nightly.link**
-* **[hunterk and Pokefan531 for their amazing libretro shaders](https://forums.libretro.com/t/real-gba-and-ds-phat-colors/1540/220)**
-* ...everyone who contributed to **3dbrew.org**
+GPL v3 or any later version. See `LICENSE.txt`.
+
+---
+
+## Credits
+
+- **yellows8**, **plutoo**, **smea**, **Normmatt**, **WinterMute** — early 3DS research
+- **ctrulib devs**, **LumaTeam**, **devkitPro**
+- **ChaN** — FatFS
+- **benhoyt** — inih
+- **fastboot3DS project**
+- **MAME**, **No-Intro**
+- **Wolfvak, Sono** and everyone in #GodMode9
+- **endrift, Extrems** and everyone in #mgba
+- **Oleh Prypin (oprypin)** — nightly.link
+- **hunterk, Pokefan531** — [libretro color profiles](https://forums.libretro.com/t/real-gba-and-ds-phat-colors/1540/220)
+- Everyone who contributed to **3dbrew.org**
 
 Copyright (C) 2024 derrek, profi200, d0k3
