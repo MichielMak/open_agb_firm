@@ -18,6 +18,7 @@
 
 #include "oaf_error_codes.h"
 #include "fs.h"
+#include "arm.h"
 #include "arm11/open_agb_firm.h"
 #include "arm11/config.h"
 #include "drivers/gfx.h"
