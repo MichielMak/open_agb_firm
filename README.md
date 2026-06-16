@@ -230,6 +230,9 @@ Options for advanced users. No pun intended.
 `bool saveOverride` - Open save type override menu after selecting a game.
 * Default: `false`
 
+`bool colorOverride` - Allow per-game color profile settings to override the global `colorProfile` value in `config.ini`.
+* Default: `false`
+
 `string defaultSave` - Save type default when save type is not in `gba_db.bin` and cannot be autodetected. Same options as for `saveType` above except `auto` is not supported.
 * Default: `sram_256k`
 
@@ -239,7 +242,6 @@ open_agb_firm supports automatically applying IPS and UPS patches. To use a patc
 
 ## Known Issues
 This section is reserved for a listing of known issues. At present only this remains:
-* Sleep mode is not fully implemented.
 * Using SELECT+Y to dump screen output to a file can freeze the screen output sometimes.
 * Save type autodetection may still fail for certain games using EEPROM.
 * Lack of settings.

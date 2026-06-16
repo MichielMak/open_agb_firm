@@ -19,14 +19,34 @@
 #include "oaf_error_codes.h"
 #include "fs.h"
 #include "arm11/open_agb_firm.h"
+#include "arm11/config.h"
 #include "drivers/gfx.h"
 #include "arm11/drivers/mcu.h"
 #include "arm11/console.h"
 #include "arm11/drivers/codec.h"
 #include "arm11/drivers/hid.h"
+#include "arm11/drivers/lgycap.h"
+#include "arm11/drivers/lgy11.h"
+#include "arm11/drivers/gpio.h"
 #include "arm11/power.h"
 
 
+
+static void handleLidSleep(void)
+{
+	CODEC_setVolumeOverride(-128);
+	LGYCAP_stop(LGYCAP_DEV_TOP);
+	GFX_powerOffBacklight(GFX_BL_BOTH);
+	MCU_setPowerLedPattern(MCU_PWR_LED_SLEEP);
+	while(GPIO_read(GPIO_1_SHELL))
+		__wfi();
+	MCU_setPowerLedPattern(MCU_PWR_LED_AUTO);
+	GFX_powerOnBacklight(GFX_BL_BOTH);
+	LGYCAP_start(LGYCAP_DEV_TOP);
+	CODEC_setVolumeOverride(g_oafConfig.volume);
+	REG_HID_PADCNT = 0;
+	getLgy11Regs()->sleep |= BIT(0);
+}
 
 int main(void)
 {
@@ -41,7 +61,9 @@ int main(void)
 		while(1)
 		{
 			hidScanInput();
-			if(hidGetExtraKeys(0) & (KEY_POWER_HELD | KEY_POWER)) break;
+			const u32 extraKeys = hidGetExtraKeys(KEY_SHELL);
+			if(extraKeys & (KEY_POWER_HELD | KEY_POWER)) break;
+			if(extraKeys & KEY_SHELL) handleLidSleep();
 
 			oafUpdate();
 		}

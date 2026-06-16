@@ -46,6 +46,7 @@
                                                   \
                         "[advanced]\n"            \
                         "saveOverride=false\n"    \
+                        "colorOverride=false\n"   \
                         "defaultSave=sram_256k"
 
 
@@ -91,6 +92,7 @@ OafConfig g_oafConfig =
 
 	// [advanced]
 	false, // saveOverride
+	false, // colorOverride
 	14     // defaultSave
 };
 
@@ -261,6 +263,8 @@ static int cfgIniCallback(void *user, const char *section, const char *name, con
 	{
 		if(strcmp(name, "saveOverride") == 0)
 			config->saveOverride = (strcmp(value, "false") == 0 ? false : true);
+		if(strcmp(name, "colorOverride") == 0)
+			config->colorOverride = (strcmp(value, "false") == 0 ? false : true);
 		if(strcmp(name, "defaultSave") == 0)
 		{
 			if(strcmp(value, "eeprom_8k") == 0)
