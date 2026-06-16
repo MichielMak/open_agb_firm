@@ -23,3 +23,12 @@
 
 KHandle OAF_videoInit(void);
 void OAF_videoExit(void);
+
+// Returns true if the color correction LUT pipeline (core 1 conversion) is active.
+// Only colorProfile values selected before OAF_videoInit() are taken into account.
+bool OAF_colorCorrectionActive(void);
+
+// Recomputes the color correction LUT from the current g_oafConfig contrast/
+// brightness/saturation/colorProfile values. Does nothing if colorProfile is
+// 0 (none) since the LUT pipeline isn't initialized in that case.
+void OAF_updateColorLut(void);

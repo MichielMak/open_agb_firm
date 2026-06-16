@@ -39,9 +39,49 @@ X+LEFT - Turn off LCD backlight.
 
 X+RIGHT - Turn on LCD backlight.
 
+X+SELECT - Open the live settings menu on the bottom screen.
+* Up/Down: move between items. Left/Right: adjust the selected item.
+* Press B or X+SELECT again to close.
+* Adjustments to contrast, brightness, saturation, and color profile take effect immediately when a color profile is active. Backlight, volume, and audio output are always live.
+* Changes are session-only; edit `config.ini` to make them permanent.
+* Items marked *(restart to apply)* require relaunching the game to take effect.
+
 Hold the X button while launching a game to skip applying patches (if present)
 
 Hold the power button to turn off the 3DS.
+
+## Live Settings Menu
+
+Press X+SELECT during gameplay to open the settings menu on the bottom screen. The top screen continues showing the game while the menu is open.
+
+### Controls
+| Button | Action |
+|--------|--------|
+| Up / Down | Move between items |
+| Left / Right | Adjust the selected value |
+| B or X+SELECT | Close the menu |
+| Power | Exit the menu and power off |
+
+### Menu Items
+
+`Backlight` - Screen brightness. Adjusts by `backlightSteps` units per press. Same as X+UP/DOWN but accessible from the menu.
+
+`Color Profile` - Cycles through all available color correction profiles (None, GBA, GB Micro, GBA SP (AGS-101), NDS, NDS Lite, Switch Online, VBA/No$GBA, Identity). Switching between non-None profiles updates immediately. Switching to or from None requires a restart because it changes the video capture pipeline.
+
+`Contrast` - Screen gain. Step size: 0.05. Range: 0.00–3.00. Default: 1.00. Has no effect when Color Profile is None.
+
+`Brightness` - Screen lift. Step size: 0.05. Range: -1.00–1.00. Default: 0.00. Has no effect when Color Profile is None.
+
+`Saturation` - Color saturation. Step size: 0.05. Range: 0.00–3.00. Default: 1.00. Values below 1.00 desaturate toward greyscale; values above 1.00 oversaturate. Has no effect when Color Profile is None.
+
+`Volume` - Audio volume in 0.5 dB steps. Displays `Slider` when set to hardware volume slider control (the default), `Muted` at minimum, or a raw dB value otherwise. The range -19 to 48 is intentionally skipped as it is undefined behavior for the hardware.
+
+`Audio Output` - Cycles between Auto, Speakers, and Headphones.
+
+### Notes
+* All changes are **session-only** and are lost when the game exits. To make them permanent, update the corresponding values in `/3ds/open_agb_firm/config.ini`.
+* Items marked **(restart to apply)** only take effect after relaunching the game. This applies to Color Profile when switching to or from None.
+* Contrast, Brightness, and Saturation require a non-None Color Profile to have any visible effect. The menu will show `(need color profile)` next to these values when Color Profile is set to None.
 
 ## Configuration
 Settings are stored in `/3ds/open_agb_firm/config.ini`.

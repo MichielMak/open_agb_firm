@@ -1,8 +1,6 @@
-#pragma once
-
 /*
  *   This file is part of open_agb_firm
- *   Copyright (C) 2021 derrek, profi200
+ *   Copyright (C) 2024 profi200
  *
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -18,21 +16,16 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "error_codes.h"
-
-
+#pragma once
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
 
-Result oafParseConfigEarly(void);
-void changeBacklight(s16 amount);
-u16 oafGetButtonOverrides(void);
-Result oafInitAndRun(void);
-void oafUpdate(void);
-void oafFinish(void);
+// Opens the live settings overlay on the bottom screen (triggered by X+SELECT).
+// Returns when the user exits (B or X+SELECT again).
+void showSettingsMenu(void);
 
 #ifdef __cplusplus
 } // extern "C"

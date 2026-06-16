@@ -201,7 +201,7 @@ ALWAYS_INLINE float clamp_float(const float x, const float min, const float max)
 	return (x < min ? min : (x > max ? max : x));
 }
 
-void makeColorLut(const ColorProfile *const p)
+static void makeColorLut(const ColorProfile *const p)
 {
 	const float targetGamma    = p->targetGamma;
 	const float contrast       = g_oafConfig.contrast;
@@ -504,6 +504,18 @@ KHandle OAF_videoInit(void)
 	}
 
 	return frameReadyEvent;
+}
+
+bool OAF_colorCorrectionActive(void)
+{
+	return g_convFinishedEvent != 0;
+}
+
+void OAF_updateColorLut(void)
+{
+	const u8 colorProfile = g_oafConfig.colorProfile;
+	if(colorProfile > 0 && colorProfile <= 8)
+		makeColorLut(&g_colorProfiles[colorProfile - 1]);
 }
 
 void OAF_videoExit(void)

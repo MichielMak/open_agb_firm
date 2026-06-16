@@ -38,6 +38,7 @@
 #include "arm11/drivers/lgy11.h"
 #include "kernel.h"
 #include "kevent.h"
+#include "arm11/menu.h"
 
 
 static KHandle g_frameReadyEvent = 0;
@@ -273,6 +274,15 @@ Result oafParseConfigEarly(void)
 	return res;
 }
 
+u16 oafGetButtonOverrides(void)
+{
+	const u32 *const maps = g_oafConfig.buttonMaps;
+	u16 overrides = 0;
+	for(unsigned i = 0; i < 10; i++)
+		if(maps[i] != 0) overrides |= 1u<<i;
+	return overrides;
+}
+
 Result oafInitAndRun(void)
 {
 	Result res;
@@ -332,11 +342,7 @@ Result oafInitAndRun(void)
 				g_frameReadyEvent = OAF_videoInit();
 
 				// Setup button overrides.
-				const u32 *const maps = g_oafConfig.buttonMaps;
-				u16 overrides = 0;
-				for(unsigned i = 0; i < 10; i++)
-					if(maps[i] != 0) overrides |= 1u<<i;
-				LGY11_selectInput(overrides);
+				LGY11_selectInput(oafGetButtonOverrides());
 
 				// Sync LgyCap start with LCD VBlank.
 				GFX_waitForVBlank0();
@@ -365,6 +371,12 @@ void oafUpdate(void)
 
 	CODEC_runHeadphoneDetection();
 	updateBacklight();
+
+	// Open settings overlay with X+SELECT (X is not a GBA button so it won't be
+	// passed through to the game; only SELECT momentarily reaches GBA hardware).
+	if(kHeld == (KEY_X | KEY_SELECT) && hidKeysDown() != 0)
+		showSettingsMenu();
+
 	waitForEvent(g_frameReadyEvent);
 	clearEvent(g_frameReadyEvent);
 }
