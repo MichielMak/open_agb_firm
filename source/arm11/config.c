@@ -20,6 +20,7 @@
 #include <string.h>
 #include "types.h"
 #include "arm11/config.h"
+#include "arm11/fmt.h"
 #include "inih/ini.h"
 #include "util.h"
 #include "fsutil.h"
@@ -98,6 +99,31 @@ OafConfig g_oafConfig =
 
 
 
+static const char *const g_buttonStrLut[32] =
+{
+	"A", "B", "SELECT", "START", "RIGHT", "LEFT", "UP", "DOWN",
+	"R", "L", "X", "Y", "", "", "ZL", "ZR",
+	"", "", "", "", "TOUCH", "", "", "",
+	"CS_RIGHT", "CS_LEFT", "CS_UP", "CS_DOWN", "CP_RIGHT", "CP_LEFT", "CP_UP", "CP_DOWN"
+};
+
+// Save type names indexed by their internal value (0-15).
+static const char *const g_saveTypeLut[16] =
+{
+	"eeprom_8k", "rom_256m_eeprom_8k", "eeprom_64k", "rom_256m_eeprom_64k",
+	"flash_512k_atmel_rtc", "flash_512k_atmel", "flash_512k_sst_rtc", "flash_512k_sst",
+	"flash_512k_panasonic_rtc", "flash_512k_panasonic", "flash_1m_macronix_rtc", "flash_1m_macronix",
+	"flash_1m_sanyo_rtc", "flash_1m_sanyo", "sram_256k", "none"
+};
+
+static const char *const g_scalerLut[3]      = {"none", "bilinear", "matrix"};
+static const char *const g_colorProfileLut[9] =
+{
+	"none", "gba", "gb_micro", "gba_sp101", "nds", "ds_lite", "nso", "vba", "identity"
+};
+static const char *const g_audioOutLut[3]    = {"auto", "speakers", "headphones"};
+
+
 static u32 parseButtons(const char *str)
 {
 	if(str == NULL || *str == '\0') return 0;
@@ -107,13 +133,6 @@ static u32 parseButtons(const char *str)
 	strncpy(buf, str, 31);
 
 	char *bufPtr = buf;
-	static const char *const buttonStrLut[32] =
-	{
-		"A", "B", "SELECT", "START", "RIGHT", "LEFT", "UP", "DOWN",
-		"R", "L", "X", "Y", "", "", "ZL", "ZR",
-		"", "", "", "", "TOUCH", "", "", "",
-		"CS_RIGHT", "CS_LEFT", "CS_UP", "CS_DOWN", "CP_RIGHT", "CP_LEFT", "CP_UP", "CP_DOWN"
-	};
 	u32 map = 0;
 	while(1)
 	{
@@ -121,7 +140,7 @@ static u32 parseButtons(const char *str)
 		if(nextDelimiter != NULL) *nextDelimiter = '\0';
 
 		unsigned i = 0;
-		while(i < 32 && strcmp(buttonStrLut[i], bufPtr) != 0) ++i;
+		while(i < 32 && strcmp(g_buttonStrLut[i], bufPtr) != 0) ++i;
 		if(i == 32) break;
 		map |= 1u<<i;
 
@@ -324,4 +343,134 @@ Result parseOafConfig(const char *const path, OafConfig *cfg, const bool newCfgO
 	free(iniBuf);
 
 	return res;
+}
+
+// Buffer large enough for the full config including all input mappings.
+#define OUT_INI_BUF_SIZE    (2048u)
+
+// Append a comma-separated list of button names for a bitmask to *p,
+// advancing *p past the written text.
+static void appendButtonNames(char **const p, const u32 map)
+{
+	bool first = true;
+	for(unsigned i = 0; i < 32; i++)
+	{
+		if((map & (1u<<i)) == 0 || g_buttonStrLut[i][0] == '\0') continue;
+
+		ee_sprintf(*p, "%s%s", first ? "" : ",", g_buttonStrLut[i]);
+		*p += strlen(*p);
+		first = false;
+	}
+}
+
+// ee_sprintf has no %f support; format a float as "[-]X.XX" via integer math.
+static void appendFloat(char **const p, const float val)
+{
+	s32 scaled = (s32)(val * 100.f + (val < 0.f ? -0.5f : 0.5f));
+	const bool neg = scaled < 0;
+	if(neg) scaled = -scaled;
+	ee_sprintf(*p, "%s%d.%02d", neg ? "-" : "", (int)(scaled / 100), (int)(scaled % 100));
+	*p += strlen(*p);
+}
+
+Result writeOafConfig(const char *const path, const OafConfig *cfg)
+{
+	cfg = (cfg != NULL ? cfg : &g_oafConfig);
+
+	char *const buf = (char*)calloc(OUT_INI_BUF_SIZE, 1);
+	if(buf == NULL) return RES_OUT_OF_MEM;
+
+	char *p = buf;
+
+	// [general]
+	ee_sprintf(p,
+		"[general]\n"
+		"backlight=%u\n"
+		"backlightSteps=%u\n"
+		"directBoot=%s\n"
+		"useGbaDb=%s\n"
+		"useSavesFolder=%s\n\n",
+		(unsigned)cfg->backlight, (unsigned)cfg->backlightSteps,
+		cfg->directBoot ? "true" : "false",
+		cfg->useGbaDb ? "true" : "false",
+		cfg->useSavesFolder ? "true" : "false");
+	p += strlen(p);
+
+	// [video]
+	ee_sprintf(p, "[video]\nscaler=%s\ncolorProfile=%s\ncontrast=",
+		g_scalerLut[cfg->scaler < 3 ? cfg->scaler : 2],
+		g_colorProfileLut[cfg->colorProfile < 9 ? cfg->colorProfile : 0]);
+	p += strlen(p);
+	appendFloat(&p, cfg->contrast);
+	ee_sprintf(p, "\nbrightness="); p += strlen(p);
+	appendFloat(&p, cfg->brightness);
+	ee_sprintf(p, "\nsaturation="); p += strlen(p);
+	appendFloat(&p, cfg->saturation);
+	ee_sprintf(p, "\n\n"); p += strlen(p);
+
+	// [audio]
+	ee_sprintf(p, "[audio]\naudioOut=%s\nvolume=%d\n\n",
+		g_audioOutLut[cfg->audioOut < 3 ? cfg->audioOut : 0], (int)cfg->volume);
+	p += strlen(p);
+
+	// [input] - only emit remapped buttons.
+	{
+		bool wroteHeader = false;
+		for(unsigned i = 0; i < 10; i++)
+		{
+			if(cfg->buttonMaps[i] == 0) continue;
+
+			if(!wroteHeader)
+			{
+				ee_sprintf(p, "[input]\n"); p += strlen(p);
+				wroteHeader = true;
+			}
+			ee_sprintf(p, "%s=", g_buttonStrLut[i]); p += strlen(p);
+			appendButtonNames(&p, cfg->buttonMaps[i]);
+			ee_sprintf(p, "\n"); p += strlen(p);
+		}
+		if(wroteHeader) { ee_sprintf(p, "\n"); p += strlen(p); }
+	}
+
+	// [advanced]
+	ee_sprintf(p,
+		"[advanced]\n"
+		"saveOverride=%s\n"
+		"colorOverride=%s\n"
+		"defaultSave=%s",
+		cfg->saveOverride ? "true" : "false",
+		cfg->colorOverride ? "true" : "false",
+		g_saveTypeLut[cfg->defaultSave < 16 ? cfg->defaultSave : 14]);
+	p += strlen(p);
+
+	const Result res = fsQuickWrite(path, buf, strlen(buf));
+	free(buf);
+
+	return res;
+}
+
+// Persist the live settings without importing per-game overrides:
+// reload the on-disk global config, then apply only the menu-editable
+// fields from the live config on top of it.
+Result saveMenuSettings(const char *const path, const OafConfig *live)
+{
+	live = (live != NULL ? live : &g_oafConfig);
+
+	OafConfig tmp = *live;
+
+	// Re-read the global config so per-game overrides loaded at launch
+	// are replaced by their global values again. A missing file is fine.
+	const Result res = parseOafConfig(path, &tmp, false);
+	if(res != RES_OK && res != RES_FR_NO_FILE) return res;
+
+	// The menu can only change these fields; keep the user's live values.
+	tmp.backlight    = live->backlight;
+	tmp.colorProfile = live->colorProfile;
+	tmp.contrast     = live->contrast;
+	tmp.brightness   = live->brightness;
+	tmp.saturation   = live->saturation;
+	tmp.volume       = live->volume;
+	tmp.audioOut     = live->audioOut;
+
+	return writeOafConfig(path, &tmp);
 }

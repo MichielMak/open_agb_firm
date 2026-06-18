@@ -52,16 +52,35 @@ jobs:
       - name: Get release asset name
         run: echo "ASSET=$(ls open_agb_firm*.7z)" >> $GITHUB_ENV
 
+      - name: Generate release notes
+        run: |
+          GIT_CLIFF_VERSION=2.6.1
+          apt-get update
+          apt-get -y install curl
+          curl -sSL "https://github.com/orhun/git-cliff/releases/download/v${GIT_CLIFF_VERSION}/git-cliff-${GIT_CLIFF_VERSION}-x86_64-unknown-linux-gnu.tar.gz" | tar -xz
+          install -m 0755 "git-cliff-${GIT_CLIFF_VERSION}/git-cliff" /usr/local/bin/git-cliff
+
+          # git-cliff invokes git; mark the checkout as a safe directory.
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+          # Per-commit changelog for the tag being released.
+          git-cliff --latest --config cliff.toml --output CHANGELOG_GENERATED.md
+
+          {
+            echo "## Installation"
+            echo "1. Copy \`open_agb_firm.firm\` to \`/luma/payloads\` on your 3DS SD card (Luma3DS), or assign it a slot in fastboot3DS."
+            echo "2. Copy the \`3ds\` folder to the root of your SD card."
+            echo "3. Launch via Luma3DS by holding START while booting, or via your fastboot3DS slot assignment."
+            echo ""
+            echo "See the [README](https://github.com/${GITHUB_REPOSITORY}/blob/${GITHUB_REF_NAME}/README.md) for full setup and configuration instructions."
+            echo ""
+            cat CHANGELOG_GENERATED.md
+          } > RELEASE_BODY.md
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3
         with:
           name: ${{ github.ref_name }}
-          body: |
-            ## Installation
-            1. Copy `open_agb_firm.firm` to `/luma/payloads` on your 3DS SD card (Luma3DS), or assign it a slot in fastboot3DS.
-            2. Copy the `3ds` folder to the root of your SD card.
-            3. Launch via Luma3DS by holding START while booting, or via your fastboot3DS slot assignment.
-
-            See the [README](https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/README.md) for full setup and configuration instructions.
+          body_path: RELEASE_BODY.md
           files: ${{ env.ASSET }}
           fail_on_unmatched_files: true

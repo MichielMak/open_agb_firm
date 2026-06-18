@@ -71,6 +71,8 @@ extern OafConfig g_oafConfig; // Global config in config.c.
 
 
 Result parseOafConfig(const char *const path, OafConfig *cfg, const bool newCfgOnError);
+Result writeOafConfig(const char *const path, const OafConfig *cfg);
+Result saveMenuSettings(const char *const path, const OafConfig *live);
 
 #ifdef __cplusplus
 } // extern "C"

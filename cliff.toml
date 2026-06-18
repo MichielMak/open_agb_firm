@@ -1,0 +1,53 @@
+# git-cliff configuration — generates release notes from Conventional Commits.
+# https://git-cliff.org/docs/configuration
+
+[changelog]
+header = ""
+# Template for a single release's notes (used with --latest).
+body = """
+{% if version -%}
+## What's Changed in {{ version }}
+{% else -%}
+## What's Changed
+{% endif -%}
+{% for group, commits in commits | group_by(attribute="group") %}
+### {{ group | upper_first }}
+{% for commit in commits -%}
+- {{ commit.message | upper_first }} ({{ commit.id | truncate(length=7, end="") }})
+{% endfor -%}
+{% endfor %}
+"""
+trim = true
+footer = ""
+
+[git]
+conventional_commits = true
+filter_unconventional = false
+split_commits = false
+protect_breaking_commits = false
+filter_commits = false
+tag_pattern = "v[0-9]*"
+topo_order = false
+sort_commits = "oldest"
+
+# Keep only the subject line of each commit (drop body and trailers).
+commit_preprocessors = [
+  { pattern = '(?s)\r?\n.*$', replace = "" },
+]
+
+commit_parsers = [
+  { message = "^Merge ", skip = true },
+  { message = "^feat", group = "✨ Features" },
+  { message = "^fix", group = "🐛 Bug Fixes" },
+  { message = "^docs", group = "📖 Documentation" },
+  { message = "^perf", group = "⚡ Performance" },
+  { message = "^refactor", group = "♻️ Refactor" },
+  { message = "^test", group = "✅ Testing" },
+  { message = "^ci", group = "🛠 Maintenance & CI" },
+  { message = "^build", group = "🛠 Maintenance & CI" },
+  { message = "^chore\\(release\\)", skip = true },
+  { message = "^chore\\(deps\\)", skip = true },
+  { message = "^chore", group = "🛠 Maintenance & CI" },
+  { message = "^revert", group = "⏪ Reverts" },
+  { message = ".*", group = "🔧 Other Changes" },
+]

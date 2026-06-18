@@ -43,6 +43,7 @@ Press **X+SELECT** during gameplay. The top screen keeps showing the game.
 |--------|--------|
 | Up / Down | Move between items |
 | Left / Right | Adjust value |
+| Start | Save current settings to `config.ini` |
 | B or X+SELECT | Close |
 | Power | Power off |
 
@@ -62,7 +63,7 @@ Press **X+SELECT** during gameplay. The top screen keeps showing the game.
 - Contrast, Brightness, and Saturation have no effect when Color Profile is None.
 - Switching between non-None profiles updates immediately. Switching to or from None requires a game restart (changes the capture pipeline). These items are marked **(restart to apply)**.
 - Volume skips the range -19 to +48 dB — that range is undefined behavior on this hardware.
-- All changes are **session-only**. Edit `config.ini` to persist them.
+- Changes are **session-only** until you press **Start** to write them to `config.ini`, or edit the file by hand.
 
 ---
 
