@@ -1,4 +1,4 @@
-FROM devkitpro/devkitarm
+FROM devkitpro/devkitarm@sha256:116afba8df8453961de2936ffab20dd441edf4d682856c1ec8b0e53d7ed0bbf5
 
 RUN git clone https://github.com/profi200/dma330as && \
     cd dma330as && \
