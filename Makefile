@@ -67,20 +67,20 @@ arm11/$(TARGET)11.bin:
 clean:
 	@$(MAKE) --no-print-directory -C arm9 clean
 	@$(MAKE) --no-print-directory -C arm11 clean
-	rm -fr $(TARGET).firm *.7z nightly
+	rm -fr $(TARGET).firm $(TARGET)v*.firm *.7z nightly
 
 #---------------------------------------------------------------------------------
 release: clean
 	@$(MAKE) -j$(NPROC) --no-print-directory -C arm9 NO_DEBUG=1
 	@$(MAKE) -j$(NPROC) --no-print-directory -C arm11 NO_DEBUG=1
 ifeq ($(strip $(USE_FIRMTOOL)),1)
-	firmtool build $(TARGET).firm -n $(ENTRY9) -e $(ENTRY11) -A $(SECTION0_ADR) $(SECTION1_ADR) \
+	firmtool build $(TARGET)$(VERS_STRING).firm -n $(ENTRY9) -e $(ENTRY11) -A $(SECTION0_ADR) $(SECTION1_ADR) \
 		-D $(SECTION0_FILE) $(SECTION1_FILE) -C $(SECTION0_TYPE) $(SECTION1_TYPE)
 else
-	firm_builder $(TARGET).firm $(ENTRY9) $(ENTRY11) $(SECTION0_ADR) $(SECTION0_TYPE) \
+	firm_builder $(TARGET)$(VERS_STRING).firm $(ENTRY9) $(ENTRY11) $(SECTION0_ADR) $(SECTION0_TYPE) \
 		$(SECTION0_FILE) $(SECTION1_ADR) $(SECTION1_TYPE) $(SECTION1_FILE)
 endif
-	@7z a -mx -m0=LZMA $(TARGET)$(VERS_STRING).7z $(TARGET).firm resources/gba_db.bin libraries/libn3ds/LICENSE.txt libraries/libn3ds/libraries/fatfs/LICENSE.txt libraries/inih/LICENSE.txt LICENSE.txt README.md
+	@7z a -mx -m0=LZMA $(TARGET)$(VERS_STRING).7z $(TARGET)$(VERS_STRING).firm resources/gba_db.bin libraries/libn3ds/LICENSE.txt libraries/libn3ds/libraries/fatfs/LICENSE.txt libraries/inih/LICENSE.txt LICENSE.txt README.md
 	@7z rn $(TARGET)$(VERS_STRING).7z resources/gba_db.bin 3ds/open_agb_firm/gba_db.bin libraries/libn3ds/LICENSE.txt LICENSE_libn3ds.txt libraries/libn3ds/libraries/fatfs/LICENSE.txt LICENSE_FatFs.txt libraries/inih/LICENSE.txt LICENSE_inih.txt
 
 #---------------------------------------------------------------------------------
