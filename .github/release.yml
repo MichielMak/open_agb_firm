@@ -1,0 +1,27 @@
+changelog:
+  exclude:
+    labels:
+      - ignore-for-release
+    authors:
+      - dependabot
+      - self-hosted-renovate-mm
+  categories:
+    - title: ✨ Features
+      labels:
+        - feature
+        - enhancement
+    - title: 🐛 Bug Fixes
+      labels:
+        - bug
+        - fix
+    - title: 📖 Documentation
+      labels:
+        - documentation
+    - title: 🛠 Maintenance & CI
+      labels:
+        - ci
+        - chore
+        - dependencies
+    - title: 🔧 Other Changes
+      labels:
+        - "*"
