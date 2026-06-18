@@ -38,6 +38,12 @@
 #define ENT_TYPE_FILE  (0)
 #define ENT_TYPE_DIR   (1)
 
+// Hold-to-scroll auto-repeat for D-Pad navigation.
+// Timings are in VBlank frames (~16.7 ms each).
+#define KEY_REPEAT_KEYS     (KEY_DUP | KEY_DDOWN | KEY_DLEFT | KEY_DRIGHT)
+#define KEY_REPEAT_DELAY    (24u) // Frames before auto-repeat starts (~400 ms).
+#define KEY_REPEAT_INTERVAL (6u)  // Frames between repeats (~100 ms).
+
 
 typedef struct
 {
@@ -155,6 +161,7 @@ Result browseFiles(const char *const basePath, char selected[512])
 	s32 cursorPos = 0; // Within the entire list.
 	u32 windowPos = 0; // Window start position within the list.
 	s32 oldCursorPos = 0;
+	u32 repeatTimer = 0; // Frames until the next auto-repeat fires.
 	while(1)
 	{
 		ee_printf("\x1b[%lu;H ", oldCursorPos - windowPos + 1);      // Clear old cursor.
@@ -169,6 +176,23 @@ Result browseFiles(const char *const basePath, char selected[512])
 			hidScanInput();
 			if(hidGetExtraKeys(0) & (KEY_POWER_HELD | KEY_POWER)) goto end;
 			kDown = hidKeysDown();
+
+			// Hold-to-scroll: synthesize key presses for held D-Pad directions.
+			const u32 kHeld = hidKeysHeld();
+			if(kDown & KEY_REPEAT_KEYS)
+			{
+				repeatTimer = KEY_REPEAT_DELAY;
+			}
+			else if(kHeld & KEY_REPEAT_KEYS)
+			{
+				if(repeatTimer != 0) repeatTimer--;
+				else
+				{
+					repeatTimer = KEY_REPEAT_INTERVAL;
+					kDown |= kHeld & KEY_REPEAT_KEYS;
+				}
+			}
+			else repeatTimer = 0;
 		} while(kDown == 0);
 
 		const u32 num = dList->num;
