@@ -13,12 +13,19 @@ body = """
 {% for group, commits in commits | group_by(attribute="group") %}
 ### {{ group | upper_first }}
 {% for commit in commits -%}
-- {{ commit.message | upper_first }} ({{ commit.id | truncate(length=7, end="") }})
+- {{ commit.message | split(pat="\n") | first | trim | upper_first }}
+{%- for f in commit.footers | default(value=[]) %}
+{%- if f.token == "Closes" or f.token == "Fixes" or f.token == "Resolves" or f.token == "Refs" or f.token == "Upstream" %} ({{ f.value | trim }}){% endif %}
+{%- endfor %} ({{ commit.id | truncate(length=7, end="") }})
 {% endfor -%}
 {% endfor %}
 """
 trim = true
 footer = ""
+# Turn upstream issue references into clickable links in the final notes.
+postprocessors = [
+  { pattern = '\bprofi200/open_agb_firm#(\d+)\b', replace = "[profi200/open_agb_firm#${1}](https://github.com/profi200/open_agb_firm/issues/${1})" },
+]
 
 [git]
 conventional_commits = true
@@ -29,11 +36,6 @@ filter_commits = false
 tag_pattern = "v[0-9]*"
 topo_order = false
 sort_commits = "oldest"
-
-# Keep only the subject line of each commit (drop body and trailers).
-commit_preprocessors = [
-  { pattern = '(?s)\r?\n.*$', replace = "" },
-]
 
 commit_parsers = [
   { message = "^Merge ", skip = true },
