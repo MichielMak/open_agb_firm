@@ -8,6 +8,7 @@
   "dependencyDashboardTitle": "Renovate Dependency Dashboard",
   "timezone": "Europe/Amsterdam",
   "assigneesFromCodeOwners": true,
+  "reviewers": ["MichielMak"],
   "enabledManagers": [
     "dockerfile",
     "github-actions",
