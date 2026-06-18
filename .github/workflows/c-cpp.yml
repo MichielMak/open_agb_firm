@@ -2,7 +2,16 @@ name: C/C++ CI
 
 on:
   push:
+    paths-ignore: &ignore-paths
+      - '**/*.md'
+      - 'LICENSE.txt'
+      - 'cliff.toml'
+      - 'renovate.json'
+      - '.gitignore'
+      - '.gitmodules'
+      - '.github/workflows/release.yml'
   pull_request:
+    paths-ignore: *ignore-paths
   workflow_dispatch:
 
 jobs:
