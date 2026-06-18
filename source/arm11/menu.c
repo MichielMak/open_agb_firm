@@ -291,7 +291,7 @@ void showSettingsMenu(void)
 		else if(kDown & KEY_START)
 		{
 			// Persist the current settings to the global config.
-			const Result res = writeOafConfig(OAF_WORK_DIR "/config.ini", &g_oafConfig);
+			const Result res = saveMenuSettings(OAF_WORK_DIR "/config.ini", &g_oafConfig);
 			if(res == RES_OK)
 				ee_printf("\x1b[%u;H\x1b[32;1mSaved to config.ini\x1b[0m\x1b[K", STATUS_ROW);
 			else

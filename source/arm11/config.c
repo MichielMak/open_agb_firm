@@ -448,3 +448,29 @@ Result writeOafConfig(const char *const path, const OafConfig *cfg)
 
 	return res;
 }
+
+// Persist the live settings without importing per-game overrides:
+// reload the on-disk global config, then apply only the menu-editable
+// fields from the live config on top of it.
+Result saveMenuSettings(const char *const path, const OafConfig *live)
+{
+	live = (live != NULL ? live : &g_oafConfig);
+
+	OafConfig tmp = *live;
+
+	// Re-read the global config so per-game overrides loaded at launch
+	// are replaced by their global values again. A missing file is fine.
+	const Result res = parseOafConfig(path, &tmp, false);
+	if(res != RES_OK && res != RES_FR_NO_FILE) return res;
+
+	// The menu can only change these fields; keep the user's live values.
+	tmp.backlight    = live->backlight;
+	tmp.colorProfile = live->colorProfile;
+	tmp.contrast     = live->contrast;
+	tmp.brightness   = live->brightness;
+	tmp.saturation   = live->saturation;
+	tmp.volume       = live->volume;
+	tmp.audioOut     = live->audioOut;
+
+	return writeOafConfig(path, &tmp);
+}
