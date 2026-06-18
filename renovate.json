@@ -1,0 +1,51 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":enableVulnerabilityAlerts"
+  ],
+  "dependencyDashboard": true,
+  "dependencyDashboardTitle": "Renovate Dependency Dashboard",
+  "timezone": "Europe/Amsterdam",
+  "assigneesFromCodeOwners": true,
+  "enabledManagers": [
+    "dockerfile",
+    "github-actions",
+    "git-submodules"
+  ],
+  "labels": [
+    "renovate"
+  ],
+  "ignoreUnstable": true,
+  "prHourlyLimit": 6,
+  "prConcurrentLimit": 10,
+  "branchConcurrentLimit": 10,
+  "pinDigests": true,
+  "automerge": true,
+  "automergeType": "pr",
+  "platformAutomerge": true,
+  "pruneStaleBranches": true,
+  "recreateWhen": "always",
+  "rebaseWhen": "behind-base-branch",
+  "osvVulnerabilityAlerts": true,
+  "vulnerabilityAlerts": {
+    "addLabels": ["security"],
+    "schedule": ["at any time"],
+    "minimumReleaseAge": "0 hours"
+  },
+  "packageRules": [
+    {
+      "description": "Group all GitHub Actions updates together",
+      "matchManagers": ["github-actions"],
+      "groupName": "github-actions",
+      "addLabels": ["github-actions"]
+    },
+    {
+      "description": "Group all submodule updates together",
+      "matchManagers": ["git-submodules"],
+      "groupName": "submodules",
+      "addLabels": ["submodules"],
+      "automerge": false
+    }
+  ]
+}
