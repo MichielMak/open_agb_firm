@@ -32,6 +32,9 @@
 
 #define NUM_ITEMS           (7u)
 
+#define MENU_ROW0           (6u)                       // First item row (1-indexed).
+#define STATUS_ROW          (MENU_ROW0 + NUM_ITEMS + 1u)
+
 #define ITEM_BACKLIGHT      (0u)
 #define ITEM_COLOR_PROFILE  (1u)
 #define ITEM_CONTRAST       (2u)
@@ -68,11 +71,12 @@ static void drawMenu(const u32 cursor, const u32 oldCursor, const bool fullRedra
 	{
 		consoleClear();
 		ee_puts("\x1b[37;1m== open_agb_firm Settings ==\x1b[0m\n");
-		ee_puts("Up/Down: select   Left/Right: adjust   B: close\n");
+		ee_puts("Up/Down: select   Left/Right: adjust\n");
+		ee_puts("Start: save to config.ini   B: close\n");
 	}
 
 	// Erase the previous cursor marker (column 1 of that row).
-	ee_printf("\x1b[%u;H ", oldCursor + 4u);
+	ee_printf("\x1b[%u;H ", oldCursor + MENU_ROW0);
 
 	for(u32 i = 0; i < NUM_ITEMS; i++)
 	{
@@ -146,12 +150,12 @@ static void drawMenu(const u32 cursor, const u32 oldCursor, const bool fullRedra
 		}
 
 		ee_printf("\x1b[%u;H  \x1b[37;1m%-18s\x1b[0m %s%s\x1b[K",
-		          i + 4u, label, valStr,
+		          i + MENU_ROW0, label, valStr,
 		          noteRestart ? " \x1b[33;1m(restart to apply)\x1b[0m" : "");
 	}
 
 	// Draw the cursor marker at column 1 of the selected row.
-	ee_printf("\x1b[%u;H\x1b[37m>", cursor + 4u);
+	ee_printf("\x1b[%u;H\x1b[37m>", cursor + MENU_ROW0);
 	GFX_flushBuffers();
 }
 
@@ -283,6 +287,17 @@ void showSettingsMenu(void)
 		else if(kDown & KEY_DRIGHT)
 		{
 			adjustItem(cursor, +1);
+		}
+		else if(kDown & KEY_START)
+		{
+			// Persist the current settings to the global config.
+			const Result res = writeOafConfig(OAF_WORK_DIR "/config.ini", &g_oafConfig);
+			if(res == RES_OK)
+				ee_printf("\x1b[%u;H\x1b[32;1mSaved to config.ini\x1b[0m\x1b[K", STATUS_ROW);
+			else
+				ee_printf("\x1b[%u;H\x1b[31;1mSave failed (%d)\x1b[0m\x1b[K", STATUS_ROW, (int)res);
+			GFX_flushBuffers();
+			continue;
 		}
 		else if(kDown & KEY_B)
 		{
