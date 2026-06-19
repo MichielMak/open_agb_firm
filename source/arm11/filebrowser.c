@@ -28,9 +28,13 @@
 
 
 // Notes on these settings:
+// These are hard caps acting as a memory backstop only. scanDir() pre-counts the
+// directory and allocates exactly what is needed up to these limits, so a typical
+// folder uses far less memory than the worst case. The caps are sized to comfortably
+// hold a few thousand entries (e.g. a full untrimmed regional GBA set).
 // MAX_ENT_BUF_SIZE should be big enough to hold the average file/dir name length * MAX_DIR_ENTRIES.
-#define MAX_ENT_BUF_SIZE  (1024u * 196) // 196 KiB.
-#define MAX_DIR_ENTRIES   (1000u)
+#define MAX_ENT_BUF_SIZE  (1024u * 1960) // ~1.91 MiB. Proportional to MAX_DIR_ENTRIES.
+#define MAX_DIR_ENTRIES   (10000u)
 #define DIR_READ_BLOCKS   (10u)
 #define SCREEN_COLS       (53u - 1) // - 1 because the console inserts a newline after the last line otherwise.
 #define SCREEN_ROWS       (24u)
@@ -47,9 +51,10 @@
 
 typedef struct
 {
-	u32 num;                       // Total number of entries.
-	char entBuf[MAX_ENT_BUF_SIZE]; // Format: char entryType; char name[X]; // null terminated.
-	char *ptrs[MAX_DIR_ENTRIES];   // For fast sorting.
+	u32 num;        // Total number of entries in the list.
+	u32 hidden;     // Number of matching entries dropped because a cap was hit.
+	char *entBuf;   // Format: char entryType; char name[X]; // null terminated. Heap allocated.
+	char **ptrs;    // For fast sorting. Each entry points into entBuf. Heap allocated.
 } DirList;
 
 
@@ -72,59 +77,159 @@ int dlistCompare(const void *a, const void *b)
 	return res;
 }
 
+// Returns whether a directory entry should be included in the list.
+// Directories are always kept; files must match the filter (suffix) and not be hidden.
+static bool keepEntry(const FILINFO *const fi, const char *const filter, const u32 filterLen)
+{
+	if(fi->fattrib & AM_DIR) return true;
+
+	const u32 nameLen = strlen(fi->fname);
+	if(nameLen <= filterLen || strcmp(filter, fi->fname + nameLen - filterLen) != 0
+	   || fi->fname[0] == '.')
+		return false;
+
+	return true;
+}
+
 static Result scanDir(const char *const path, DirList *const dList, const char *const filter)
 {
+	// Release any previous result so this function can be called repeatedly.
+	free(dList->entBuf);
+	free(dList->ptrs);
+	dList->entBuf = NULL;
+	dList->ptrs   = NULL;
+	dList->num    = 0;
+	dList->hidden = 0;
+
 	FILINFO *const fis = (FILINFO*)malloc(sizeof(FILINFO) * DIR_READ_BLOCKS);
 	if(fis == NULL) return RES_OUT_OF_MEM;
 
-	dList->num = 0;
+	const u32 filterLen = strlen(filter);
 
+	// Pass 1: pre-count matching entries and the buffer size they need.
 	Result res;
 	DHandle dh;
-	if((res = fOpenDir(&dh, path)) == RES_OK)
+	u32 wantEntries = 0; // Number of matching entries in the directory.
+	u64 wantBytes   = 0; // Bytes needed to store them (entry type + name + NULL each).
+	if((res = fOpenDir(&dh, path)) != RES_OK)
 	{
-		u32 read;           // Number of entries read by fReadDir().
-		u32 numEntries = 0; // Total number of processed entries.
-		u32 entBufPos = 0;  // Entry buffer position/number of bytes used.
-		const u32 filterLen = strlen(filter);
+		free(fis);
+		return res;
+	}
+	{
+		u32 read;
 		do
 		{
-			if((res = fReadDir(dh, fis, DIR_READ_BLOCKS, &read)) != RES_OK) break;
-			read = (read <= MAX_DIR_ENTRIES - numEntries ? read : MAX_DIR_ENTRIES - numEntries);
+			if((res = fReadDir(dh, fis, DIR_READ_BLOCKS, &read)) != RES_OK)
+			{
+				fCloseDir(dh);
+				free(fis);
+				return res;
+			}
 
 			for(u32 i = 0; i < read; i++)
 			{
-				const char entType = (fis[i].fattrib & AM_DIR ? ENT_TYPE_DIR : ENT_TYPE_FILE);
+				if(!keepEntry(&fis[i], filter, filterLen)) continue;
+				wantEntries++;
+				wantBytes += strlen(fis[i].fname) + 2;
+			}
+		} while(read == DIR_READ_BLOCKS);
+	}
+	fCloseDir(dh);
+
+	// Nothing to list (empty or fully filtered directory).
+	if(wantEntries == 0)
+	{
+		free(fis);
+		return RES_OK;
+	}
+
+	// Clamp to the hard caps (memory backstop).
+	const u32 maxEntries = (wantEntries > MAX_DIR_ENTRIES ? MAX_DIR_ENTRIES : wantEntries);
+	const u32 bufSize    = (wantBytes > MAX_ENT_BUF_SIZE ? MAX_ENT_BUF_SIZE : (u32)wantBytes);
+
+	// Single up-front allocation. ptrs[] point into entBuf so entBuf must never move.
+	char *const entBuf = (char*)malloc(bufSize);
+	char **const ptrs  = (char**)malloc(sizeof(char*) * maxEntries);
+	if(entBuf == NULL || ptrs == NULL)
+	{
+		free(entBuf);
+		free(ptrs);
+		free(fis);
+		return RES_OUT_OF_MEM;
+	}
+
+	// Pass 2: fill the freshly allocated buffers.
+	if((res = fOpenDir(&dh, path)) != RES_OK)
+	{
+		free(entBuf);
+		free(ptrs);
+		free(fis);
+		return res;
+	}
+
+	u32 numEntries = 0; // Total number of stored entries.
+	u32 entBufPos  = 0; // Entry buffer position/number of bytes used.
+	{
+		u32 read;
+		do
+		{
+			if((res = fReadDir(dh, fis, DIR_READ_BLOCKS, &read)) != RES_OK) break;
+
+			for(u32 i = 0; i < read; i++)
+			{
+				if(!keepEntry(&fis[i], filter, filterLen)) continue;
+
 				const u32 nameLen = strlen(fis[i].fname);
-				if(entType == ENT_TYPE_FILE)
-				{
-					if(nameLen <= filterLen || strcmp(filter, fis[i].fname + nameLen - filterLen) != 0
-					   || fis[i].fname[0] == '.')
-						continue;
-				}
+				// Stop if either cap is reached. Remaining matches are reported as hidden.
+				if(numEntries >= maxEntries || entBufPos + nameLen + 2 > bufSize) goto scanEnd;
 
-				// nameLen does not include the entry type and NULL termination.
-				if(entBufPos + nameLen + 2 > MAX_ENT_BUF_SIZE) goto scanEnd;
-
-				char *const entry = &dList->entBuf[entBufPos];
+				const char entType = (fis[i].fattrib & AM_DIR ? ENT_TYPE_DIR : ENT_TYPE_FILE);
+				char *const entry = &entBuf[entBufPos];
 				*entry = entType;
 				safeStrcpy(&entry[1], fis[i].fname, 256);
-				dList->ptrs[numEntries++] = entry;
+				ptrs[numEntries++] = entry;
 				entBufPos += nameLen + 2;
 			}
 		} while(read == DIR_READ_BLOCKS);
-
-scanEnd:
-		dList->num = numEntries;
-
-		fCloseDir(dh);
 	}
 
+scanEnd:
+	fCloseDir(dh);
 	free(fis);
+
+	dList->entBuf = entBuf;
+	dList->ptrs   = ptrs;
+	dList->num    = numEntries;
+	dList->hidden = wantEntries - numEntries;
 
 	qsort(dList->ptrs, dList->num, sizeof(char*), dlistCompare);
 
 	return res;
+}
+
+// Shows a full-screen warning when a directory was too large to list fully and
+// waits for a key press. The console is a fixed 53x24 grid with no spare rows
+// for a persistent footer, so a modal warning is used instead.
+static void showTruncationWarning(const u32 hidden)
+{
+	ee_printf("\x1b[2J\x1b[0;0H"
+	          "\x1b[31;1mList truncated!\n\n"
+	          "\x1b[37m%lu file(s) in this folder are hidden\n"
+	          "because it exceeds the %lu entry limit.\n\n"
+	          "Press any button to continue.",
+	          hidden, (u32)MAX_DIR_ENTRIES);
+	GFX_flushBuffers();
+
+	u32 kDown;
+	do
+	{
+		GFX_waitForVBlank0();
+
+		hidScanInput();
+		if(hidGetExtraKeys(0) & (KEY_POWER_HELD | KEY_POWER)) return;
+		kDown = hidKeysDown();
+	} while(kDown == 0);
 }
 
 static void showDirList(const DirList *const dList, u32 start)
@@ -153,9 +258,14 @@ Result browseFiles(const char *const basePath, char selected[512])
 
 	DirList *const dList = (DirList*)malloc(sizeof(DirList));
 	if(dList == NULL) return RES_OUT_OF_MEM;
+	dList->num    = 0;
+	dList->hidden = 0;
+	dList->entBuf = NULL;
+	dList->ptrs   = NULL;
 
 	Result res;
 	if((res = scanDir(curDir, dList, ".gba")) != RES_OK) goto end;
+	if(dList->hidden != 0) showTruncationWarning(dList->hidden);
 	showDirList(dList, 0);
 
 	s32 cursorPos = 0; // Within the entire list.
@@ -252,6 +362,7 @@ Result browseFiles(const char *const basePath, char selected[512])
 			}
 
 			if((res = scanDir(curDir, dList, ".gba")) != RES_OK) break;
+			if(dList->hidden != 0) showTruncationWarning(dList->hidden);
 			cursorPos = 0;
 			windowPos = 0;
 			showDirList(dList, 0);
@@ -259,6 +370,8 @@ Result browseFiles(const char *const basePath, char selected[512])
 	}
 
 end:
+	free(dList->entBuf);
+	free(dList->ptrs);
 	free(dList);
 	free(curDir);
 
