@@ -9,6 +9,7 @@
   "timezone": "Europe/Amsterdam",
   "assigneesFromCodeOwners": true,
   "reviewers": ["MichielMak"],
+  "assignAutomerge": true,
   "enabledManagers": [
     "dockerfile",
     "github-actions",
