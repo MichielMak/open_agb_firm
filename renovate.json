@@ -9,8 +9,12 @@
   "enabledManagers": [
     "dockerfile",
     "github-actions",
-    "git-submodules"
+    "git-submodules",
+    "pre-commit"
   ],
+  "pre-commit": {
+    "enabled": true
+  },
   "ignoreUnstable": true,
   "branchConcurrentLimit": 10,
   "pinDigests": true,
@@ -26,6 +30,12 @@
       "groupName": "submodules",
       "addLabels": ["submodules"],
       "automerge": false
+    },
+    {
+      "description": "The pre-commit manager cannot write a digest into rev:, so pinning fails with 'update failure'",
+      "matchManagers": ["pre-commit"],
+      "addLabels": ["pre-commit"],
+      "pinDigests": false
     }
   ]
 }

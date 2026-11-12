@@ -1,0 +1,32 @@
+name: Renovate config
+
+# Validates renovate.json with renovate-config-validator (via pre-commit).
+# Only runs when the Renovate config or this check changes.
+on:
+  pull_request:
+    paths:
+      - "renovate.json"
+      - ".pre-commit-config.yaml"
+      - ".github/workflows/renovate-config.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate renovate.json
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: "3.12"
+
+      - name: Run pre-commit
+        uses: pre-commit/action@2c7b3805fd2a0fd8c1884dcaebf91fc102a13ecd # v3.0.1
