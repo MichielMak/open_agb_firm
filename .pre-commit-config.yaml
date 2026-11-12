@@ -1,0 +1,9 @@
+repos:
+  - repo: https://github.com/renovatebot/pre-commit-hooks
+    rev: 44.227.4
+    hooks:
+      - id: renovate-config-validator
+        # --no-global: check the files as repository config (with file
+        # arguments the validator otherwise treats them as global config)
+        args: [--strict, --no-global]
+        files: "(^|/)renovate\\.json5?$"
